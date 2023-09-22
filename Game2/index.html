@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suit Collector</title>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <link rel="stylesheet" type="text/css" href="css/toastr.min.css" />
+
+</head>
+
+
+<body>
+    <div class="container">
+        <div class="game row">
+            <div class="controls col-sm-4">
+                <h3>Suit Collector</h3>
+                <br>
+                <button id="bNewGame"type="button" class="btn btn-primary">New Game</button>
+                <br><br>
+                <label>Play With :</label>
+                <select id="selAgent" class="form-select" aria-label="Default select example">
+                    <option value="0" selected>Agent Rock (Random Agent)</option>
+                    <option value="1">Agent Iron</option>
+                    <option value="2">Agent Gold</option>
+                    <option value="3">Agent Diamond 1</option>
+                    <option value="4">Agent Diamond 2</option>
+                </select>
+                <br><br>
+                <label>Your Suit: </label>
+                <select id="selUserSuit" class="form-select" aria-label="Default select example">
+                    <option value="0" selected>Let AI Pick Suit first</option>
+                    <option value="1">Clubs</option>
+                    <option value="2">Hearts</option>
+                    <option value="3">Spades</option>
+                    <option value="4">Diamonds</option>
+                </select>
+                <br><br>
+                <label>Agents Suit: </label>
+                <select id="selAgentSuit" class="form-select" aria-label="Default select example">
+                    <option value="0" selected>Pick Suit</option>
+                    <option value="1">Clubs</option>
+                    <option value="2">Hearts</option>
+                    <option value="3">Spades</option>
+                    <option value="4">Diamonds</option>
+                </select>
+                <!-- <button type="button" id="btLetAIChoose" class="btn btn-link">Let AI Choose</button> -->
+                <br><br>
+                <label><span id="act">Select Two Cards to swap and click 'play turn' or don't select and click 'play turn' to let agent go first.</span></label>
+                <br>
+                <button type="button" id="btPlayTurn" class="btn btn-success btn-lg">Play Turn</button>
+                <br><br>
+            </div>
+            <div class="board col">
+                <div class="img-grid">
+                    <div class="img-container" id="p0">
+                        <img src="img/11.png" alt="BlackCat" id="p0i" />
+                    </div>
+                    <div class="img-container" id="p1">
+                        <img src="img/12.png" alt="BlackCat" id="p1i" />
+                    </div>
+                    <div class="img-container" id="p2">
+                        <img src="img/13.png" alt="BlackCat" id="p2i" />
+                    </div>
+                    <div class="img-container" id="p3">
+                        <img src="img/14.png" alt="BlackCat" id="p3i" />
+                    </div>
+                    <div class="img-container" id="p4">
+                        <img src="img/21.png" alt="BlackCat" id="p4i" />
+                    </div>
+                    <div class="img-container" id="p5">
+                        <img src="img/22.png" alt="BlackCat" id="p5i" />
+                    </div>
+                    <div class="img-container" id="p6">
+                        <img src="img/23.png" alt="BlackCat" id="p6i" />
+                    </div>
+                    <div class="img-container" id="p7">
+                        <img src="img/24.png" alt="BlackCat" id="p7i" />
+                    </div>
+                    <div class="img-container" id="p8">
+                        <img src="img/31.png" alt="BlackCat" id="p8i" />
+                    </div>
+                    <div class="img-container" id="p9">
+                        <img src="img/32.png" alt="BlackCat" id="p9i" />
+                    </div>
+                    <div class="img-container" id="p10">
+                        <img src="img/33.png" alt="BlackCat" id="p10i" />
+                    </div>
+                    <div class="img-container" id="p11">
+                        <img src="img/34.png" alt="BlackCat" id="p11i" />
+                    </div>
+                    <div class="img-container" id="p12">
+                        <img src="img/41.png" alt="BlackCat" id="p12i" />
+                    </div>
+                    <div class="img-container" id="p13">
+                        <img src="img/42.png" alt="BlackCat" id="p13i" />
+                    </div>
+                    <div class="img-container" id="p14">
+                        <img src="img/43.png" alt="BlackCat" id="p14i" />
+                    </div>
+                    <div class="img-container" id="p15">
+                        <img src="img/44.png" alt="BlackCat" id="p15i" />
+                    </div>
+                </div>
+                <!-- <div class="img-row">
+                    <div class="img-container" id="p0">
+                        <img src="img/11.png" alt="BlackCat" id="p0i" />
+                    </div>
+                    <div class="img-container" id="p1">
+                        <img src="img/12.png" alt="BlackCat" id="p1i" />
+                    </div>
+                    <div class="img-container" id="p2">
+                        <img src="img/13.png" alt="BlackCat" id="p2i" />
+                    </div>
+                    <div class="img-container" id="p3">
+                        <img src="img/14.png" alt="BlackCat" id="p3i" />
+                    </div>
+                </div>
+                <div class="img-row">
+                    <div class="img-container" id="p4">
+                        <img src="img/21.png" alt="BlackCat" id="p4i" />
+                    </div>
+                    <div class="img-container" id="p5">
+                        <img src="img/22.png" alt="BlackCat" id="p5i" />
+                    </div>
+                    <div class="img-container" id="p6">
+                        <img src="img/23.png" alt="BlackCat" id="p6i" />
+                    </div>
+                    <div class="img-container" id="p7">
+                        <img src="img/24.png" alt="BlackCat" id="p7i" />
+                    </div>
+                </div>
+                <div class="img-row">
+                    <div class="img-container" id="p8">
+                        <img src="img/31.png" alt="BlackCat" id="p8i" />
+                    </div>
+                    <div class="img-container" id="p9">
+                        <img src="img/32.png" alt="BlackCat" id="p9i" />
+                    </div>
+                    <div class="img-container" id="p10">
+                        <img src="img/33.png" alt="BlackCat" id="p10i" />
+                    </div>
+                    <div class="img-container" id="p11">
+                        <img src="img/34.png" alt="BlackCat" id="p11i" />
+                    </div>
+                </div>
+                <div class="img-row">
+                    <div class="img-container" id="p12">
+                        <img src="img/41.png" alt="BlackCat" id="p12i" />
+                    </div>
+                    <div class="img-container" id="p13">
+                        <img src="img/42.png" alt="BlackCat" id="p13i" />
+                    </div>
+                    <div class="img-container" id="p14">
+                        <img src="img/43.png" alt="BlackCat" id="p14i" />
+                    </div>
+                    <div class="img-container" id="p15">
+                        <img src="img/44.png" alt="BlackCat" id="p15i" />
+                    </div>
+                </div> -->
+            </div>
+        </div>
+        <div class="row"> 
+            <div class="col">
+                <h6>Debug Board:</h6> 
+                <textarea style = "width:500px; height: 80px;"  id="tdboard"></textarea>
+                <br/>
+                <button id="bdload" class="btn btn-dark">Load</button>
+                <button id="bdSet" class="btn btn-dark">Set</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script src="js/jquery-3.6.4.min.js"></script>
+<script src="js/bootstrap.bundle.js"></script>
+<script src="js/toastr.min.js"></script>
+<script src="js/main.js"></script>
+
+</html>
