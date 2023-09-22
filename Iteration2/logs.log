@@ -1,0 +1,10 @@
+2023-03-22 22:39:41.407341: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX AVX2
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2023-03-22 22:39:42.600260: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1510] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 2132 MB memory:  -> device: 0, name: NVIDIA GeForce GTX 1650 with Max-Q Design, pci bus id: 0000:01:00.0, compute capability: 7.5
+2023-03-22 22:40:44.330731: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:185] None of the MLIR Optimization Passes are enabled (registered 2)
+forrtl: error (200): program aborting due to control-C event
+Image              PC                Routine            Line        Source             
+libifcoremd.dll    00007FFCF7F3DF54  Unknown               Unknown  Unknown
+KERNELBASE.dll     00007FFDB05E22E7  Unknown               Unknown  Unknown
+KERNEL32.DLL       00007FFDB0A426BD  Unknown               Unknown  Unknown
+ntdll.dll          00007FFDB2A8A9F8  Unknown               Unknown  Unknown
