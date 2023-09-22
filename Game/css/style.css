@@ -1,0 +1,40 @@
+.game {
+    margin-top: 50px;;
+}
+
+container {
+    width: 1024px !important;
+    min-width: 1024px !important;
+    overflow-x: scroll;
+}
+
+.img-row {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap; 
+} 
+
+
+.img-container {
+    width: 150px;   
+    height: 110px;
+    /* flex: 0.05 0 130px; */
+    position: relative;
+    overflow: hidden;
+    border: 5px solid #073b4c;
+    border-radius: 20px;
+    padding: 0px 20px;
+    margin-top: 5px;
+}
+
+.img-grid {
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    column-gap: 0px;
+}
+
+img {
+    width: 100px;
+    height: 100px;
+}
