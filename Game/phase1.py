@@ -10,6 +10,7 @@
                     The approach used in this is Q-learning.
  FOR: CS 5392 Reinforcement Learning Section 001
 '''
+import itertools
 
 import numpy
 import random
@@ -43,22 +44,31 @@ suit_names = ["Spades", "Hearts", "Clubs", "Diamonds"] # Names of all the suits.
 '''
     NAME: epsilon_greedy
     PARAMETERS: q_table - List; The Q table for the Q learning. Updated one for each iteration.
-                epsilon - Float value; Range = [0, 1]; Needed for epsilon greedy policy to pick a random action or the max action.
+                last_reward - Float value; the latest reward obtained by the model
+                reward_threshold - Float value; the highest reward obtained till now. Epsilon decay depends on this value
+                epsilon - Float value; Range = [0, 1]; Needed for epsilon greedy with decay policy to pick a random action or the max action.
     PURPOSE: This function determines which action to be picked according to the random variable policy which has the value between [0, 1], 
-             the epsilon value and q_table that is passed.
+             the epsilon value and q_table that is passed. A modification has been made in this function since the previous iteration of 
+             code. The modification is the epsilon-decay according to the reward obtained from the environment. If the latest reward is 
+             greater than the reward threshold, then the epsilon value is decayed and the reward threshold is updated to the latest reward.
     PRECONDITION: This function is called by the main function. Before this function is called, the global and local variables are set.
                   The main function has been called. 
-    POSTCONDITION:  This function returns the action to be taken according to the epsilon greedy policy.
+    POSTCONDITION:  This function returns the action to be taken according to the epsilon greedy policy with epsilon decay modification.
 '''
 
-def epsilon_greedy(q_table, epsilon=0.5):
+def epsilon_greedy(q_table, last_reward, reward_threshold, epsilon = 0.5):
 
     # Epsilon greedy policy to pick the action according to the random function and the epsilon...
+    # Decaying the value of epsilon according to the current reward and reward threshold.
+    if last_reward > reward_threshold:
+        epsilon = epsilon * 1/(last_reward - reward_threshold)
+        # Updating the reward threshold.
+        reward_threshold = last_reward
     policy = random.uniform(0, 1) # Random number generator in the range of 0 to 1...
     if policy < epsilon:
-        return random.randint(0, 3) # Pick random action if epsilon > policy
+        return random.randint(0, 3), reward_threshold, epsilon # Pick random action if epsilon > policy
     else:
-        return numpy.argmax(q_table) # Else pick the max action from the q_table
+        return numpy.argmax(q_table), reward_threshold, epsilon # Else pick the max action from the q_table
 
 '''
     NAME: calculate_sparse
@@ -98,7 +108,7 @@ def calculate_sparse(card_ID, board, agent_ID):
                 if board[i][j] < 0:
                     current_sparse[i][j] = 100
     # print("Sparse after 100: ", current_sparse)
-
+    # print("Current Sparse: ", current_sparse)
     # Returning the sparse matrix...
     return current_sparse
 
@@ -221,6 +231,107 @@ def new_reward(agent_ID, state, action, card_IDs, card_IDs_prev=[-1, -1, -1, -1]
             return 1, state
 
 '''
+    NAME: distance_reward
+    PARAMETERS: agent_ID - Binary variable; indicates if agent is making the choice or if the opponent is making the choice.
+                state - Nested List; Contains the current status of the board.
+                action - Integer; Contains the action chosen (suit chosen) by the agent.
+                agent_suit_cards - These are the cards of the suit chosen or to be selected by the agent.
+    PURPOSE: This function calculates the reward of an action chosen by the agent according to the manhattan distance of misplaced cards
+             from their desired position in the closest winning sequence.
+    PRECONDITION: This function is called by the q_function. Before this function is called, the global and local variables are set.
+                  The main function has been called and the q_function has also been called. 
+    POSTCONDITION:  This function returns the reward an agent might get depending on which action it selects. It also returns the latest state 
+                    of the board after the agent and/or the opponent has chosen the suit.
+'''
+
+def distance_reward(agent_ID, state, action, agent_suit_cards):
+    # This variable has teh cards chosen by the agent.
+    card_IDs = agent_suit_cards
+    if agent_ID == 0:
+        # For the suit chosen by the agent, convert those card IDs to negative numbers for identification...
+        for i in card_IDs:
+            for j in range(len(state)):
+                if i in state[j]:
+                    index = state[j].index(i)
+                    state[j][index] = state[j][index] * -1
+
+    # Sparse matrix calculation according to the positions of the chosen cards on the board.
+    sparse = []
+    for i in state:
+        new_row = [0, 0, 0, 0]
+        for j in range(len(i)):
+            if i[j]*-1 in card_IDs:
+                new_row[j] = 1
+        sparse.append(new_row)
+
+    # Calculating the mismatched cards from expected position and current position.
+    mismatch = []
+    for i in winning_positions:
+        count = 0
+        for j in range(len(i)):
+            for k in range(4):
+                if sparse[j][k] != i[j][k]:
+                    count += 1
+        mismatch.append(count)
+
+    min_mismatch = min(mismatch)
+    indices = []
+    for i in range(len(mismatch)):
+        if mismatch[i] == min_mismatch:
+            indices.append(i)
+
+    # For all the winning positions that have the minimum mismatch count, we are calculating the distance between the cards missing from the
+    # ideal position and the cards misplaced in the current position of the board. We are storing these distances in a list and considering
+    # the minimum distance found to calculate the reward.
+    final_distances = []
+    for i in winning_positions:
+        if winning_positions.index(i) in indices:
+            # print(i)
+            record_missing_ones_from_win = []
+            record_misplaced_ones_in_sparse = []
+            for row_number in range(len(i)):
+                row_win = i[row_number]
+                row_sparse = sparse[row_number]
+                for j in range(len(row_win)):
+                    if row_win[j] == 1:
+                        if row_sparse[j] == 0:
+                            record_missing_ones_from_win.append([row_number, j])
+                    else:
+                        if row_sparse[j] == 1:
+                            record_misplaced_ones_in_sparse.append([row_number, j])
+            # print("Missing: ", record_missing_ones_from_win)
+            # print("Misplaced: ", record_misplaced_ones_in_sparse)
+
+            missing = record_missing_ones_from_win
+            misplaced = record_misplaced_ones_in_sparse
+            min_distances = []
+            for a in misplaced:
+                x1 = a[0]
+                y1 = a[1]
+                distances = []
+                for b in missing:
+                    x2 = b[0]
+                    y2 = b[1]
+                    d = abs(y1 - y2) + abs(x1 - x2)
+                    distances.append(d)
+                min_distances.append(distances)
+            # print("min_distance: ", min_distances)
+
+            avg_min_distances = []
+            for a in min_distances:
+                avg_min_distances.append(sum(a)/len(a))
+            # print(avg_min_distances)
+
+            final_distances.append(sum(avg_min_distances))
+
+    # print("Final Distances: ", final_distances)
+    if min(final_distances) != 0:
+        reward = 1 / min(final_distances)
+    else:
+        reward = 10
+    return reward, state
+
+'''
     NAME: q_function
     PARAMETERS: agent_ID - Binary variable; indicates if agent is making the choice or if the opponent is making the choice.
                 state - Nested List; Contains the current status of the board.
@@ -236,6 +347,7 @@ def new_reward(agent_ID, state, action, card_IDs, card_IDs_prev=[-1, -1, -1, -1]
                     control goes to the main function and the main function is able to update the q table and print the optimal action the
                     agent would take after specified number of iterations.
 '''
+
 def q_function(agent_ID, state, action, q_table, gamma, cards_prev=[-1, -1, -1, -1]):
     # Execute the following code if the agent is picking the suit...
     if agent_ID == 0:
@@ -258,8 +370,12 @@ def q_function(agent_ID, state, action, q_table, gamma, cards_prev=[-1, -1, -1, 
 
         # Computing the reward for the suit agent has picked...
         value_opponent = []
-        reward, state = new_reward(agent_ID, state_revived, action, agent_suit_cards)
+        # print(agent_ID, state_revived, action, agent_suit_cards)
+        # reward, state = new_reward(agent_ID, state_revived, action, agent_suit_cards)
+        # print(state_revived, agent_suit_cards)
+        reward, state = distance_reward(agent_ID, state_revived, action, agent_suit_cards)
         # print("State: ", state)
+        # print("Reward: ", reward)
 
         agent_ID = 1
         # Setting agent ID as 1 which is agent has picked the suit, but now we will consider what happens after the agent has picked this
@@ -283,6 +399,7 @@ def q_function(agent_ID, state, action, q_table, gamma, cards_prev=[-1, -1, -1, 
 
         # Returning the maximum value the agent can get considering the worst action the opponent could have chosen, along with the action
         # of the agent...
+        # print("Value Opponent: ", value_opponent)
         return max(value_opponent), action
 
     # Execute this code if the agent has already chosen a suit and now we want to calculate the reward for each suit the opponent could
@@ -359,7 +476,7 @@ def createNewBoard(board):
                     As this is executing the Q-learning algorithm, it will have updated Q-table values from time to time.
                     It displays the Suit agent has picked.
 '''
-def main(status = False, board = []):
+def main(status = False, board = [], user_suit = -1):
     if status == True:
         positions_array = createNewBoard(board)
         # print("This is the new board: ", positions_array)
@@ -368,15 +485,21 @@ def main(status = False, board = []):
         while j < 13:
             board.append([positions_array[j], positions_array[j + 1], positions_array[j + 2], positions_array[j + 3]])
             j += 4
-        # print("New Board: ", board)
+        print("New Board: ", board)
         q_table = [0, 0, 0, 0]  # Initializing the q_table for 4 actions...
+        if user_suit != -1:
+            q_table[user_suit] = -10000
         policy_converged = False  # Boolean variable to check if the policy has converged or not...
         previous_optimal_action = 0  # Default optimal action of the agent set to select Spades...
         gamma = 0.5  # Discount factor set to 0.5 (Can be changed for training the model...)
         count = 0  # Counting variable
         updates_count = 0  # Counting variable
+        last_reward = 0.0
+        reward_threshold = 0.25
+        epsilon = 0.5
         while not policy_converged:  # Repeat this process while the policy is not converged...
-            action = epsilon_greedy(q_table, 0.5)  # Select an action according to the epsilon greedy policy...
+            action, reward_threshold, epsilon = epsilon_greedy(q_table, last_reward, reward_threshold, epsilon)  # Select an action according to the epsilon greedy policy...
+            print(epsilon)
             agent_ID = 0  # This is the agent playing...
             state = board
             # In the code below we are indicating the cards picked by the agent by negative numbers...
@@ -392,6 +515,7 @@ def main(status = False, board = []):
             # print(type(q_table))
 
             # After the q_function returns a value, the optimal action is chosen according to the maximum value from the q_table
+            last_reward = max(q_table)
             optimal_action = q_table[q_table.index(max(q_table))]
 
             # Checking if since previous 5 iterations, is the action same?
@@ -409,12 +533,13 @@ def main(status = False, board = []):
 
         # Set the predicted action as the action with the maximum value from the q_table
         predicted_action = numpy.argmax(q_table)
-        # print("The optimal action would be to pick", suit_names[predicted_action])  # Print the picked action...
-        # print("Card numbers: ", suit_to_cards_mapping[predicted_action])
+        print("The optimal action would be to pick", suit_names[predicted_action])  # Print the picked action...
+        print("Card numbers: ", suit_to_cards_mapping[predicted_action])
         return predicted_action
 
     if status == False:
         # Running this agent for 10 iterations. Each iteration works on 10 randomly generated boards.
+        positions_array = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         for i in range(10):
             random.shuffle(positions_array) # Randomly shuffles the 16 cards.
             board = [] # Empty board
@@ -435,13 +560,19 @@ def main(status = False, board = []):
             for row in board:
                 print(row)
             q_table = [0, 0, 0, 0] # Initializing the q_table for 4 actions...
+            if user_suit != -1:
+                q_table[user_suit] = -10000
             policy_converged = False # Boolean variable to check if the policy has converged or not...
             previous_optimal_action = 0 # Default optimal action of the agent set to select Spades...
             gamma = 0.5 # Discount factor set to 0.5 (Can be changed for training the model...)
             count = 0 # Counting variable
             updates_count = 0 # Counting variable
+            last_reward = 0.0
+            reward_threshold = 0.25
+            epsilon = 0.5
             while not policy_converged: # Repeat this process while the policy is not converged...
-                action = epsilon_greedy(q_table, 0.5) # Select an action according to the epsilon greedy policy...
+                action, reward_threshold, epsilon = epsilon_greedy(q_table, last_reward, reward_threshold, epsilon) # Select an action according to the epsilon greedy policy...
+                print(epsilon)
                 agent_ID = 0 # This is the agent playing...
                 state = board
                 # In the code below we are indicating the cards picked by the agent by negative numbers...
@@ -457,6 +588,7 @@ def main(status = False, board = []):
                 # print(type(q_table))
 
                 # After the q_function returns a value, the optimal action is chosen according to the maximum value from the q_table
+                last_reward = max(q_table)
                 optimal_action = q_table[q_table.index(max(q_table))]
 
                 # Checking if since previous 5 iterations, is the action same?
@@ -476,8 +608,30 @@ def main(status = False, board = []):
             predicted_action = numpy.argmax(q_table)
             print("The optimal action would be to pick", suit_names[predicted_action]) # Print the picked action...
             print("Card numbers: ", suit_to_cards_mapping[predicted_action])
-            # print("Number of Q-table updates: ", updates_count)
+            print("Number of Q-table updates: ", updates_count)
+            # return predicted_action
 
 # Launcher of the main function.
 if __name__=="__main__":
+    winning_positions = [[[1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                         [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
+                         [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0]],
+                         [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]],
+                         [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+                         [[0, 1, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0]],
+                         [[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0]],
+                         [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
+                         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+                         [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
+                         ]
+
+    positions_array = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]  # Position indices of all the positions on the keyboard.
+    board = [[12, 4, 3, 7], [3, 14, 11, 15], [6, 8, 1, 9], [2, 10, 5, 0]]  # Some temporary board containing random positions of the cards.
+    suits = [0, 1, 2, 3]  # Suits are Spades - 0, Hearts - 1, Clubs - 2, Diamonds - 3
+    # 0 to 3 - Spades
+    # 4 to 7 - Hearts
+    # 8 to 11 - Clubs
+    # 12 to 15 - Diamonds
+    suit_to_cards_mapping = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]  # Each suit is mapped to the cards menitioned above.
+    suit_names = ["Spades", "Hearts", "Clubs", "Diamonds"]  # Names of all the suits.
     main()

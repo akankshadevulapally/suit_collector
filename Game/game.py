@@ -18,10 +18,22 @@ import os.path
 import phase1
 from phase1 import *
 
-
+"""
+NAME:       game
+PURPOSE:    This class is used to create a Suit Collector environment for the Suit Collector game.
+"""
 # Suite Collector Game Class File
 class game():
 
+    """
+    NAME:           init
+    PARAMETERS:     self
+    PURPOSE:        This constructor sets up the Game Object with all necessary 
+                    properties and initializes the board.
+    PRECONDITION:   This function should be called to initialize the Game object 
+                    before starting any game.
+    POSTCONDITION:  Game object is initialized.
+    """
     def __init__(self):
         # Setting up the Game
         # Pieces - Format AB, A-> Suite , B-> Number
@@ -76,8 +88,15 @@ class game():
                 c,d = i-1,j-1
                 self.processAction(a,b,c,d)
         
-        self.models = [self.create_q_model_iron((16,),42), self.create_q_model_gold((16,),42), self.create_q_model_diamond1((16,),42), self.create_q_model_diamond2((16,),42)]
-        
+        self.models = [self.create_q_model_iron((16,),42), self.create_q_model_gold((16,),42), self.create_q_model_diamond1((16,),42), self.create_q_model_diamond2((16,),42), self.create_q_model_obsidian((16,),42)]
+
+    
+    """
+    NAME:           convertToPhase2Board
+    PARAMETERS:     self, board, suite
+    PURPOSE:        This function converts the board to phase 2 board.
+    POSTCONDITION: the board is created with phase 2 board.
+    """    
     def convertToPhase2Board(self, board, suite):
         #Converts a board to phase2 Board
         userSuit = suite[0]
@@ -92,7 +111,12 @@ class game():
             if suit == agentSuit:
                 self.board[i] = value
 
-    
+    """
+    NAME:           trackAces
+    PARAMETERS:     self
+    PURPOSE:        This function tracks aces in the board and is useful to know if any suite has won the game.
+    POSTCONDITION: The ace's location on the board is set.
+    """    
     def trackAces(self):
         # Track Aces in the board, Format - A1 | A = {1,2,3,4}
         self.aces = np.full([3],-1)
@@ -102,28 +126,72 @@ class game():
                 self.aces[self.board[i]] = i
     
    
-    # Checks if a co-ordinate is valid or not
+    """
+    NAME:           isValid
+    PARAMETERS:     Self; x - an integer representing an X or Y position on the grid
+    PURPOSE:        Checks if a coordinate is valid or not within the 4x4 grid.
+    PRECONDITION:   The input parameter x must be an integer.
+    POSTCONDITION:  Returns True if the input x is within the range of 0 to 3, 
+                    False otherwise. No variables are changed. The function only 
+                    returns a boolean value.
+    """
     def isValid(self, x):
         if x >=0 and x < 4:
             return True
         return False
 
+    """
+    NAME:           normalizeBoard
+    PARAMETERS:     self
+    PURPOSE:        The function normalizes the data on the board to values between [-1,1]
+    PRECONDITION:   The function can be called after the board has been initialized 
+                    with values between 0 and 15.
+    POSTCONDITION:  The function returns a normalized board where all values have been 
+                    divided by 4 to be within the range of [-1,1].
+    """
     def normalizeBoard(self):
         return (self.board / 4)
 
+    """
+    NAME:           normalizeBoardForAssistanceModel
+    PARAMETERS:     self
+    PURPOSE:        The function normalizes the data on the board to values between [-1,1] for agent.
+    PRECONDITION:   The function can be called after the board has been initialized 
+                    with values between 0 and 15.
+    POSTCONDITION:  The function returns a normalized board where all values have been 
+                    divided by 4 to be within the range of [-1,1].
+    """
     def normalizeBoardForAssistanceModel(self):
         return (self.board / -4)
 
-    # Populate both action Maps with an action.
+    """
+    NAME:           processAction
+    PARAMETERS:     self, a, b, c, d
+    PURPOSE:        The function processes an action by checking if the destination coordinates are valid and if the action already 
+                    exists in the actions map. It also populates the actions map with a new action if it doesn't already exist.
+    PRECONDITION:   The function must be called by an instance of the class containing this method. The a, b, c, and d arguments must 
+                    be integers representing valid coordinates on a 4x4 grid.
+    POSTCONDITION:  If the destination coordinates are valid and the action does not already exist in the actions map, then a new 
+                    entry is added to the actions map using the populateAction method. If the action already exists in the actions map, 
+                    then no changes are made to the maps. 
+    """
     def populateAction(self,x,y):
         self.actionsXY[x,y] = self.actionsCount
         self.actions[self.actionsCount, 0] = x
         self.actions[self.actionsCount, 1] = y
         self.actionsCount += 1
 
-    # Processes a action
-    #   checks if the destination coordinates are correct.
-    #   checks if the action already exists. swap(X,Y) = swap(Y,X)
+    """
+    NAME:           processAction
+    PARAMETERS:     self, a, b, c, d
+    PURPOSE:        The function processes an action by checking if the destination coordinates are valid and if the action already 
+                    exists in the actions map. It also populates the actions map with a new action if it doesn't already exist.
+    PRECONDITION:   The function must be called by an instance of the class containing this method. The a, b, c, and d arguments must 
+                    be integers representing valid coordinates on a 4x4 grid.
+    POSTCONDITION:  If the destination coordinates are valid and the action does not already exist in the actions map, then a new 
+                    entry is added to the actions map using the populateAction method. If the action already exists in the actions map, 
+                    then no changes are made to the maps. 
+    """
     def processAction(self,a,b,c,d):
         if self.isValid(c) and self.isValid(d):
             x, y = 4 * a + b, 4 * c + d
@@ -131,155 +199,8 @@ class game():
                 x,y = y,x
             if(self.actionsXY[x,y] == -1):
                 self.populateAction(x,y)
-
-
-    # Performs an action from the Agent and 
-    # responds with a random action from the agent 
-    # with nextState, reward, GameOver?, additional info
-    def step(self, action):
-        # Additional Information        
-        info = {}
-        reward = -1
-        done = False
-
-        # If more than 1500 turns are played
-        # game is considered to be draw
-        self.time+=1
-        if(self.time >= self.maxTurnsEachGame):
-            done = True
-  
-        if(action >=0 and action <  42):
-            #player makes an action
-            #check if the action is valid or not
-            # an action is valid if it does not swap opponents cards.
-            card1Pos = self.actions[action][0]
-            card2Pos = self.actions[action][1]
-
-            card1 = self.board[card1Pos]
-            card2 = self.board[card2Pos]
-
-            if (
-                card1 < 0 or \
-                card2 < 0
-                ):
-                return self.normalizeBoard(), -100, True, info
-                info["loss_reason"] = "0" # moved opponents cards lol.. 
-            if( card1 == 0 and card2 == 0):
-               info["loss_reason"] = "1"  # did not move your card, rofl...
-               return self.normalizeBoard(), -100, True, info 
-
-            # else action is valid
-            # perform the action if valid
-            self.board[card1Pos] = card2
-            self.board[card2Pos] = card1
-
-            # Track aces if required.
-            if self.board[card1Pos] == 1:
-                self.aces[1] = card1Pos
-
-            if self.board[card2Pos] == 1:
-                self.aces[1] = card2Pos
-
-            # Check if you have won.
-            # set reward that we need to return.
-            won = self.checkIfSuiteWon(1)
-            if won:
-                #print('Yay!! I won!')
-                return self.normalizeBoard(), 110, True, info
-            # if not won, but played a correct move set a reward of 1
-            #if self.board[card1Pos] == 0 and self.board[card2Pos] == 0:
-            #    reward = -0.5
-        else:
-            print("Unknown Error, action was ", action)
-            info['error'] = 'Unknown Error!!! action was , '+ str(action);
-            self.render()
-            return self.normalizeBoard(), 0, True, info
-
-        #print('You made a move ', action)
-        info['your_action'] = action
-
-        # Computer makes a move.
-        # takes the action from assistance agent,
-        # if its not legal plays a random move. 
-
-        # Predict action Q-values
-        # From environment state
-        state_tensor = tf.convert_to_tensor(self.normalizeBoardForAssistanceModel())
-        state_tensor = tf.expand_dims(state_tensor, 0)
-        action_probs = self.model(state_tensor, training=False)
-        # Take best action
-        myaction = tf.argmax(action_probs[0]).numpy() 
-        #myaction = 0
-        info['assisted_action'] = myaction
-        card1Pos = None
-        card2Pos = None
-        while True:
-            
-            card1Pos = self.actions[myaction][0]
-            card2Pos = self.actions[myaction][1]
-
-            card1 = self.board[card1Pos]
-            card2 = self.board[card2Pos]
-
-            if (
-                (card1 > 0 or \
-                card2 > 0 ) or ( card1 ==0 and card2 ==0)
-                ):
-                myaction = rd.randint(0,41)
-                continue
-            else:
-                break
-            
-        
-        # Perform the action if valid
-        self.board[card1Pos] = card2
-        self.board[card2Pos] = card1
-        #print("Computer playing action ",myaction)
-        info['random_action'] = myaction
-        # Track aces if required.
-        if self.board[card1Pos] == -1:
-            self.aces[-1] = card1Pos
-
-        if self.board[card2Pos] == -1:
-            self.aces[-1] = card2Pos
-
-        # Check if the computer won.
-        # set reward accordingly and return.
-        won = self.checkIfSuiteWon(-1)
-        if won:
-            return self.normalizeBoard(), -100, True, info
-
-            
-
-        
-        # finally
-        #self.render()
-        return self.normalizeBoard(), reward, done, info 
     
-    
-    def isValidAction(self, action):
-        if(action >=0 and action <  42):
-                #player makes an action
-                #check if the action is valid or not
-                # an action is valid if it does not swap opponents cards.
-                card1Pos = self.actions[action][0]
-                card2Pos = self.actions[action][1]
-
-                card1 = self.board[card1Pos]
-                card2 = self.board[card2Pos]
-
-                if ( card1 < 0 or card2 < 0 ):
-                    return -100
-                if (card1 == 0 and card2 ==0 ):
-                    return -100
-        else:
-            return -100 
-        return 0
-        
-    
-    #Helper method, used to start a game between two
     #Random players
-
     def agentRock(self, state_tensor, training=False):
         #Computer makes your random valid move.
         # repeat - pick a random move and check until its valid
@@ -302,8 +223,6 @@ class game():
         return_obj = [0] * 41
         return_obj[action] = 1.0
         return tf.convert_to_tensor([return_obj])
-    
-
 
     def randoVsRando(self):
         #Computer makes your random valid move.
@@ -338,8 +257,7 @@ class game():
         x = [0,-1,-2,-3]
         if(suite == 1):
             x = [0,1,2,3]
-            
-
+        
         # Diagonals
         if acePos == 0:
             if self.board[5]  == self.board[0]+x[1] and \
@@ -408,8 +326,6 @@ class game():
         print("time = ", self.time)
     
 
-
-
     # Networks
     def create_q_model_iron(self, state_shape, total_actions):
         """ Create a Q model for Agent Iron"""
@@ -447,16 +363,22 @@ class game():
         """ Create a Q model for Agent Diamond 1"""
         # input layer
         inputs = layers.Input(shape=state_shape)
+        layer0 = layers.Reshape((-1,4, 4,1), input_shape=state_shape)(inputs)
 
+        # 24 filters , 2x2 size.
+        #initializer1 = tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.4)
+        layer1 =  layers.Conv2D(64, 2, strides=1, activation="relu")(layer0)
+        layer2 = layers.Flatten()(layer1)
         # Hidden layers
-        layer1 = layers.Dense(500, activation="relu")(inputs)
-        layer2 = layers.Dense(250, activation="relu")(layer1)
-
+        
+        layer3 = layers.Dense(200, activation="relu")(layer2)
+        
         # output layer    
-        action = layers.Dense(total_actions, activation="linear")(layer2)
+        action = layers.Dense(total_actions, activation="linear")(layer3)
+
 
         model = keras.Model(inputs=inputs, outputs=action)
-        model.load_weights('./models/model-gold.h5')
+        model.load_weights('./models/model-diamond1.h5')
         return model
 
 
@@ -464,26 +386,65 @@ class game():
         """ Create a Q model for Agent Diamond 2"""
         # input layer
         inputs = layers.Input(shape=state_shape)
+        layer0 = layers.Reshape((-1,4, 4,1), input_shape=state_shape)(inputs)
 
-        # Hidden layers
-        layer1 = layers.Dense(500, activation="relu")(inputs)
-        layer2 = layers.Dense(250, activation="relu")(layer1)
+        # 128 filters , 2x2 size, Deep Convoluted Layer with 3 hidden layers
+        layer1 =  layers.Conv2D(128, 2, strides=1, activation="relu")(layer0)
+        layer2 =  layers.Conv2D(128, 2, strides=1, activation="relu")(layer1)
+        layer3 =  layers.Conv2D(128, 2, strides=1, activation="relu")(layer2)
+        layer31 = layers.Flatten()(layer3)
+
+        # A hidden Layer
+        layer4 = layers.Dense(77, activation="relu")(layer31)
 
         # output layer    
-        action = layers.Dense(total_actions, activation="linear")(layer2)
-
+        action = layers.Dense(total_actions, activation="linear")(layer4)
+        
         model = keras.Model(inputs=inputs, outputs=action)
-        model.load_weights('./models/model-gold.h5')
+        model.load_weights('./models/model-diamond2.h5')
         return model
     
+    def create_q_model_obsidian(self, state_shape, total_actions):
+        """
+        Create Deep Convolution Q Network for Obsidian Stone
+        """
+        # input layer
+        inputs = layers.Input(shape=state_shape)
+
+        layer0 = layers.Reshape((-1,4, 4,1), input_shape=state_shape)(inputs)
+
+        # 20 ways to win for each player , two players so 40 ways. 14 actions approx to win each way therefore 40 * 14 = 560 
+        #layer1 =  layers.Conv2D(560, 4, strides=1, activation="relu")(layer0)
+        
+        # 3x3 Grid,
+        # 20 ways to win in a 3x3 world with the same rules each way to win has 3 locations in total.
+        # 12 actons 
+        # 20 * 12 = 240
+        layer2 =  layers.Conv2D(240, 3, strides=1, activation="relu")(layer0)
+        
+        # 12 ways to swap
+        layer3 =  layers.Concatenate()([layers.Flatten()(layer2)])
+        
+
+        layer4 = layers.Dense(500, activation="relu")(layer3)
+        layer5 = layers.Dense(300, activation="relu")(layer4)
+        
+        # output layer    
+        action = layers.Dense(total_actions, activation="linear")(layer5)
+
+
+        model = keras.Model(inputs=inputs, outputs=action)
+        model.load_weights('./models/model-obsidian.h5')
+        return model
+        
     def process_request(self, message):
         print(message)
-        if message['suits'][0] == 0 or message['suits'][1] == 0:
+        if message['suits'][0] == 0 or message['suits'][1] == 0 or message['suits'][1] == 5:
             return self.processSuits(message)
         else:
             return self.processPlay(message)
 
-        
+
     '''
     NAME: processSuits
     PARAMETERS: self, message (Message has information such as the positions of cards on the current board, suits picked at the moment, selected cards, and the agent ID)
@@ -493,123 +454,133 @@ class game():
                   for User's suit and Agent's suit and hit "Play Turn". After that, the server.py will call the method process_request from game.py which will 
                   call this method if atleast one of the suit is not picked. 
     POSTCONDITION: This method will return a data object which has attributes such as board, processSuits, and suit. This returns the suit that is picked by the 
-                   Gold agent model. Return value is sent back to process_request method.
+                   Gold agent model or by the phase1.py file logic. Return value is sent back to process_request method.
     '''
     def processSuits(self, message):
+        userSuit = message['suits'][0]
+        agentSuit = message['suits'][1]
+        agent_id = message['playAgainst']
+        
         # Defining the data object here with board attribute set to None and processSuits attribute set to True.
         data = {}
         data['board'] = None
         data['processSuits'] = True
-        
-        # Check if the agent playing against us is a random agent (Rock agent), if it is Rock agent, then choose a random suit and return the data object.
-        if message['playAgainst'] == 0:
-            data['suit'] = str(random.randint(1, 4))
+
+        print(message['suits'])
+        # We have two Algorithms to choose from:
+        # 1. Q Learning
+        # 2. Using Phase 2 Models
+
+        # Code for Q-Learning ...
+        s = message['suits']
+        print(s)
+        if s[1] == 5:
+            suits = [1, 2, 3, 4]
+            suits_to_names = ['Clubs', 'Hearts', 'Spades', 'Diamonds']
+            # Suits are coded as 1, 2, 3, 4 for Clubs, Hearts, Spades, and Diamonds
+            # print(s[0])
+            if s[0] == 0:
+                # Call the main procedure from phase1.py file and send the current board information over there with a flag variable which indicates that we
+                # already have a board present. The return variable answer will have the index of the suit to be picked in the phase.py terminology.
+                answer = phase1.main(True, message['board'])
+            else:
+                user_suit = s[0]
+                # print(user_suit)
+                answer = phase1.main(True, message['board'], user_suit-1)
+                # Converting the suit ID from phase1.py terminology to the UI terminology. Storing the suit ID in suit attribute of data object and returning
+                # the data object.
+            if answer == 0:
+                data['suit'] = '3'
+            elif answer == 1:
+                data['suit'] = '2'
+            elif answer == 2:
+                data['suit'] = '1'
+            else:
+                data['suit'] = '4'
+            return data
+
+        # return data
+        # Agent already picked a Suit, 
+        if agentSuit != 0:
+            data['msg_e'] = 'Please pick your suit.'
             return data
         
+        # User is playing against Random Agent
+        if agent_id == 0:
+            agentSuit = random.randint(1, 4)
+            while agentSuit == userSuit:
+                agentSuit = random.randint(1, 4)
+
+            data['suit'] = str(agentSuit)
+            return data
+
+        # Agent already picked a Suit, 
+        if agentSuit != 0:
+            data['msg_e'] = 'Please pick your suit.'
+            return data
+        
+        # User is playing against Random Agent
+        if agent_id == 0:
+            agentSuit = random.randint(1, 4)
+            while agentSuit == userSuit:
+                agentSuit = random.randint(1, 4)
+
+            data['suit'] = str(agentSuit)
+            return data
+            
         # If the agent playing against us is not the random agent (Rock agent), follow this flow of code
         else:
-            # Check if both the suits are to be picked
-            if message['suits'][0] == 0 and message['suits'][1] == 0:
-                # Agent has to pick the suit first.
-                # We have two choices:
-                    # 1. Q Learning
-                    # 2. Phase 2 Gold model
-                print("Choose which method to use:")
-                print("1. Q Learning")
-                print("2. Phase 2 Gold Model")
-                # Choice is stored in variable m
-                m = 2
-                # IF we want to use the Q learning model from phase.py file, follow this branch of code...
-                if m == 1:
-                    # Suits are coded as 1, 2, 3, 4 for Clubs, Hearts, Spades, and Diamonds
-                    suits = [1, 2, 3, 4]
-                    suits_to_names = ['Clubs', 'Hearts', 'Spades', 'Diamonds']
-                    # Call the main procedure from phase1.py file and send the current board information over there with a flag variable which indicates that we 
-                    # already have a board present. The return variable answer will have the index of the suit to be picked in the phase.py terminology.
-                    answer = phase1.main(True, message['board'])
-                    # Converting the suit ID from phase1.py terminology to the UI terminology. Storing the suit ID in suit attribute of data object and returning 
-                    # the data object.
-                    if answer == 0:
-                        data['suit'] = '3'
-                    elif answer == 1:
-                        data['suit'] = '2'
-                    elif answer == 2:
-                        data['suit'] = '1'
-                    else:
-                        data['suit'] = '4'
-                    return data
+            # Code using Phase 2 Models
+            
+            # There are total 12 combination of choices for the user and agent's suit choices given that both the suits are not chosen yet.
+            # The following for loops generate the board suitable for phase 2 Gold agent for all the 12 permutations of the suits. 
+            # After generating the board suitable for phase 2 gold agent, we get the initial Q values generated by the Gold agent as a measure to see 
+            # the best reward we can get in the future if that permutation of suits is chosen...
+            # These rewards are stored for each choice of suit made by the agent and the ideal suit would be the one that gives the maximum reward. 
+            
+            # Initializing the Valid suits for user as all the possibilities in case that both the suits are not picked.
+            userValidSuits = [1,2,3,4]
+            
+            # If the user has picked his suit...
+            if userSuit != 0:
+                # Modify the possible valid suits for the user as the suit actually picked by the user...
+                userValidSuits = [userSuit]
+            
+            # For all the 4 options of the suits for the agent to pick, if that suit isn't picked by the user, then add it in the agentValidSuits list.
+            # If the user hasn't picked the suit, then this array will be like [1, 2, 3, 4]. Otherwise it will have only 3 values.
+            
+            agentValidSuits = []
+            for i in range(1,5):
+                if userSuit != i:
+                    agentValidSuits.append(i)
+            
+            # Initializing threshold variables for comparison of the best suit and the best Q value
+            best_suit = -100000
+            best_QValue = -1000000
 
-                else:
-                    # print(message['board'])
-                    # Suits are coded as 1, 2, 3, 4 for Clubs, Hearts, Spades, and Diamonds
-                    suits = [1, 2, 3, 4]
-                    suits_to_names = ['Clubs', 'Hearts', 'Spades', 'Diamonds']
-                    # This is an empty list which will contain the average maximum rewards for each choice of the suit in the future.
-                    all_suit_max_rewards = []
-                    # There are total 12 combination of choices for the user and agent's suit choices given that both the suits are not chosen yet.
-                    # The following for loops generate teh board suitable for phase 2 Gold agent for all the 12 permutations of the suits. 
-                    # After generating the board suitable for phase 2 gold agent, we get the initial Q values generated by the Gold agent as a measure to see 
-                    # the best reward we can get in the future if that permutation of suits is chosen...
-                    # These rewards are stored for each choice of suit made by the agent and the ideal suit would be the one that gives the maximum reward. 
-                    for i in suits:
-                        rewards = []
-                        for j in suits:
-                            if j != i:
-                                # j is user suit
-                                # i is agent suit
-                                # print(j, i)
-                                self.convertToPhase2Board(message['board'], [j, i])
-                                # print(self.board)
-                                rewards.append(self.getQinitial(message['playAgainst'], self.board))
-                        all_suit_max_rewards.append(max(rewards))
-                    print(all_suit_max_rewards)
-                    ideal_suit = numpy.argmax(all_suit_max_rewards)
-                    print("The ideal suit is: ", suits_to_names[ideal_suit])
-                # The ideal suit ID should be stored in the range 1 to 4; so adding 1 to the index value of the maximum reward...
-                # Storing the ideal suit in the suit attribute of the data object and returning the data object.
-                data['suit'] = str(ideal_suit + 1)
-                return data
-
-            # Check if the User has chosen the suit and now its agent's turn to pick the suit...
-            elif message['suits'][0] == 0 and message['suits'][1] != 0:
-                # Storing the suit of the user in a variable.
-                user_suit = message['suits'][1]
-                # Here as well we could have two methods for choosing the suit for the agent after the user has chosen the suit...
-                # For now, we are implementing this using only the Phase 2 Gold agent model...
-                print("Choose which method to use:")
-                print("1. Q Learning")
-                print("2. Phase 2 Gold Model")
-                m = 2
-                if m == 1:
-                    # Some code
-                    return None
-                else:
-                    # Suits are coded as 1, 2, 3, 4 for Clubs, Hearts, Spades, Diamonds
-                    suits = [1, 2, 3, 4]
-                    suits_to_names = ['Clubs', 'Hearts', 'Spades', 'Diamonds']
-                    # Rewards list will have the rewards of choosing each remaining suit given that one suit is already chosen by the user...
+            # The following for loops, for all the 12 combinations (both suits are to be picked) OR 3 combinations (User has already picked the suit)
+            for i in agentValidSuits:
                     rewards = []
-                    for i in suits:
-                        if i != user_suit:
+                    for j in userValidSuits:
+                        if i!=j:
                             # For each suit that is open for choice, generate the board suitable for the phase 2 gold model terminology
-                            self.convertToPhase2Board(message['board'], [user_suit, i])
+                            self.convertToPhase2Board(message['board'], [j, i])
                             # get the initial Q values generated by the Gold agent as a measure to see the best reward we can get in the future if that 
                             # permutation of suits is chosen...
-                            rewards.append(self.getQinitial(message['playAgainst'], self.board))
-                    # These rewards are stored for each choice of suit made by the agent and the ideal suit would be the one that gives the maximum reward. 
-                    # Ideal chosen suit is stored in the ideal_suit variable
-                    ideal_suit = numpy.argmax(rewards)
-                    print("The ideal suit is: ", suits_to_names[ideal_suit])
-                    # Ideal suit index is incremented by 1 and stored in the suit attribute of the date object. Data object is returned.
-                    data['suit'] = str(ideal_suit + 1)
-                    return data
-            
-            # See if the agent wants to proceed playing the game without choosing the suit...
-            # If so, generate an error messsage to prompt user to pick a suit.
-            # Return the data object along with the error message...
-            elif message['suits'][0] != 0 and message['suits'][1] == 0:
-                data['msg_e'] = 'Please pick your suit first!!!';
-                return data;
+                            rewards.append(self.getMaxQValues(agent_id-1))
+                    # Since user will pick the best option for him always
+                    if(userSuit == 0):
+                        curernt_best_reward = min(rewards)
+                    else:
+                        curernt_best_reward = max(rewards)
+                    if(curernt_best_reward > best_QValue):
+                        best_suit = i
+                        best_QValue = curernt_best_reward;
+            # The ideal suit ID should be stored in the range 1 to 4
+            # Storing the ideal suit in the suit attribute of the data object and returning the data object.
+            data['suit'] = str(best_suit) 
+            return data
+
 
 
     def processPlay(self, message):
@@ -724,28 +695,10 @@ class game():
             return action , x, y , True
         return action, card1Pos, card2Pos, False
 
-    '''
-    NAME: getQinitial
-    PARAMETERS: self, agent_id (which agent the user is playing against), board
-    PURPOSE: This function takes in the current status of the board and given that the the suits are already chosen by the user and the agent. 
-             It then generates the initial Q values for each move that could be made and returns the larges Q value as the reward.
-    PRECONDITION: The server.py file should be running. User should go to the localhost port on the browser and select new game and appropriate dropdown options
-                  for User's suit and Agent's suit and hit "Play Turn". After that, the server.py will call the method process_request from game.py which will 
-                  call processSuits method if atleast one of the suit is not picked. From there, this method is called in order to fetch the rewards.
-    POSTCONDITION: This method will return the maximum reward that could be obtained after both the suits are picked from the given UI board. This reward will be 
-                   returned to the processSuits method from where the ideal suit is then picked. 
-    '''
-    
-    def getQinitial(self, agent_id, board):
-        # Here the board is normalized
-        state_tensor = tf.convert_to_tensor(board/4)
-        # Expanding the dimensions of the tensor
+    def getMaxQValues(self, agent_id):
+        state_tensor = tf.convert_to_tensor(self.normalizeBoard())
         state_tensor = tf.expand_dims(state_tensor, 0)
-        # Genrating the Q values from the initial state of the board after picking the suits...
         action_qvalues = self.models[agent_id](state_tensor, training=False)
-        # print("action_qvalues: ", action_qvalues[0])
-        # print("Max Value: ", max(action_qvalues[0].numpy()))
-        # Converting the tensor to a numpy array and taking the max value (reward) out of it and returning it to the processSuits method for picking the suit.
         return max(action_qvalues[0].numpy())
 
 
@@ -753,34 +706,6 @@ class game():
 
 def main():
     return 
-    """
-    env = game('./model_assisted/model.h5')
-    #env.render()
-    print('Number of states: {}'.format(env.observation_space))
-    print('Number of actions: {}'.format(env.action_space))   
-    #env.TestcheckIfSuiteWon(np.array([0,-4,2,0, 0,-2,1,0, -3,4,0,0, 3,0,-1,0]), [-1 ,6 ,2], -1)
-    #env.TestcheckIfSuiteWon(np.array([0,-4,2,0, 0,-2,1,0, -3,4,0,0, 3,0,-1,0]), [-1 ,6 ,2], 1)
-    for i in range(100):
-        env.reset()
-        done = False
-        reward = 0
-        action = 0
-        while done != True:
-            #env.render()
-            board, reward , done , info, action = env.randoVsRando()
-        if(reward != 0):
-            env.render()
-            print("reward : " , reward, "action : ", action)
-            print(board)
-            print('---------------------------------------------------')
-    """ 
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     main()

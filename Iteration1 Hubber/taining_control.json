@@ -1,0 +1,5 @@
+{
+    "stop_training" : 1,
+    "start_epsilon": 1,
+    "games_without_epsilon": 17
+}

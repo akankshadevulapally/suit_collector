@@ -11,7 +11,7 @@ $( document ).ready(function() {
       }
 
     var board = [11,12,13,14,21,22,23,24,31,32,33,34,41,42,43,44];
-    var suits = [1,2];
+    var suits = [0,0];
     var selectedCards = [];
     var playAgainst = 0;
     var aiSelectedCards = [];
@@ -92,16 +92,17 @@ $( document ).ready(function() {
     }
 
     function highlightSelectedImages() {
-        var i = 0, len = selectedCards.length;
+        var i=0; len = aiSelectedCards.length;
+
+        
         while (i < len) {
-            $("#p"+selectedCards[i]).attr("style","border: 5px solid #ef476f");
+            $("#p"+aiSelectedCards[i]).attr("style","border: 5px solid #06d6a0");
             //06d6a0, 118ab2,  ffd166
             i++
         }
-
-        i=0; len = aiSelectedCards.length;
+        i = 0, len = selectedCards.length;
         while (i < len) {
-            $("#p"+aiSelectedCards[i]).attr("style","border: 5px solid #06d6a0");
+            $("#p"+selectedCards[i]).attr("style","border: 5px solid #ef476f");
             //06d6a0, 118ab2,  ffd166
             i++
         }
@@ -114,6 +115,10 @@ $( document ).ready(function() {
                  "selectedCards": selectedCards,
                  "playAgainst": playAgainst
                 }
+        if(suits[0] == suits[1] && suits[0] != 0) {
+            toastr.error('Pick a different Suit from the Agent.')
+            return;
+        }
         $.ajax({
             url: '/',
             type: 'POST',
@@ -130,12 +135,30 @@ $( document ).ready(function() {
                     resetStyleForAllImages();
                     displayBoard();
                     highlightSelectedImages();
+                } else if(response.processSuits) {
+                    if(response.suit) {
+                        $('#selAgentSuit').val(response.suit).change();
+                    }
+                    if(response.msg_e) toastr.error(response.msg_e)
+                    if(response.msg_i) toastr.info(response.msg_i)
+                    if(response.msg_s) toastr.success(response.msg_s)
                 }
+
             }
          });
     });
 
+    
+    $("#bdload").on('click', function(e) {
+        $("#tdboard").val(JSON.stringify(board))
+    });
 
+    $("#bdSet").on('click', function(e) {
+        board = JSON.parse($("#tdboard").val())
+        resetStyleForAllImages();
+        displayBoard();
+        highlightSelectedImages();
 
+    });
 
 });
